@@ -1,10 +1,20 @@
 // server.js
+const cors = require("cors");
 const express = require("express");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const fetch = require("node-fetch");
 const app = express();
 dotenv.config();
+
+app.use(cors({
+  origin: true, // o pon aquí tu dominio exacto del front de Azure
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
+  optionsSuccessStatus: 204
+}));
+
+app.options("*", cors()); // para preflight
 
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN;
