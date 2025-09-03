@@ -111,3 +111,16 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
 });
+// Activar Webhook manualmente (GET)
+app.get("/setWebhook", async (req, res) => {
+  const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: `https://${req.headers.host}/telegram/webhook`
+    })
+  });
+
+  const data = await response.json();
+  res.json(data);
+});
